@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'pages/produksi_page.dart'; // import halaman Produksi
 
 void main() {
   runApp(MyApp());
@@ -8,170 +7,210 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: MainPage());
-  }
-}
-
-class MainPage extends StatefulWidget {
-  @override
-  _MainPageState createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  String selectedMenu = "Dashboard";
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          // SIDEBAR
-          Container(
-            width: 230,
-            color: Color(0xFF2C3E50),
-            child: Column(
-              children: [
-                SizedBox(height: 40),
-                Text(
-                  "Sistem Informasi Pabrik Air",
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                SizedBox(height: 20),
-
-                menuItem("Dashboard", Icons.home),
-                menuItem("Karyawan", Icons.people),
-                menuItem("Produksi", Icons.factory),
-                menuItem("Gudang", Icons.warehouse),
-                menuItem("Penjualan (POS)", Icons.point_of_sale),
-                menuItem("Laporan", Icons.bar_chart),
-                menuItem("Pengaturan", Icons.settings),
-              ],
-            ),
-          ),
-
-          // CONTENT
-          Expanded(
-            child: Column(
-              children: [
-                // HEADER
-                Container(
-                  height: 70,
-                  color: Color(0xFF34495E),
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        selectedMenu,
-                        style: TextStyle(color: Colors.white, fontSize: 20),
-                      ),
-                      Row(
-                        children: [
-                          CircleAvatar(child: Icon(Icons.person)),
-                          SizedBox(width: 10),
-                          Text("Admin", style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // BODY
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: getContent(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: DataProduksiPage(),
     );
   }
+}
 
-  // MENU ITEM
-  Widget menuItem(String title, IconData icon) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white),
-      title: Text(title, style: TextStyle(color: Colors.white)),
-      onTap: () {
-        setState(() {
-          selectedMenu = title;
-        });
+class DataProduksiPage extends StatefulWidget {
+  @override
+  _DataProduksiPageState createState() => _DataProduksiPageState();
+}
+
+class _DataProduksiPageState extends State<DataProduksiPage> {
+  List<Map<String, String>> dataProduksi = [];
+
+  // controller
+  TextEditingController namaController = TextEditingController();
+  TextEditingController jumlahController = TextEditingController();
+
+  String selectedSatuan = "pcs";
+  DateTime? selectedDate;
+
+  void tambahData() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text("Tambah Produksi"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Nama Produk
+                  TextField(
+                    controller: namaController,
+                    decoration: InputDecoration(labelText: "Nama Produk"),
+                  ),
+
+                  SizedBox(height: 10),
+
+                  // Tanggal
+                  TextButton(
+                    onPressed: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+
+                      if (picked != null) {
+                        setStateDialog(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: Text(
+                      selectedDate == null
+                          ? "Pilih Tanggal"
+                          : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+                    ),
+                  ),
+
+                  // Jumlah
+                  TextField(
+                    controller: jumlahController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: "Jumlah"),
+                  ),
+
+                  SizedBox(height: 10),
+
+                  // Satuan
+                  DropdownButton<String>(
+                    value: selectedSatuan,
+                    isExpanded: true,
+                    items: ["pcs", "botol", "box", "kg"]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (value) {
+                      setStateDialog(() {
+                        selectedSatuan = value!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Batal"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    String tanggal = selectedDate == null
+                        ? "-"
+                        : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}";
+
+                    setState(() {
+                      dataProduksi.add({
+                        "nama": namaController.text,
+                        "detail":
+                            "$tanggal • ${jumlahController.text} $selectedSatuan",
+                      });
+                    });
+
+                    // reset input
+                    namaController.clear();
+                    jumlahController.clear();
+                    selectedDate = null;
+                    selectedSatuan = "pcs";
+
+                    Navigator.pop(context);
+                  },
+                  child: Text("Simpan"),
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }
 
-  // menampilkan konten sesuai menu
-  Widget getContent() {
-    switch (selectedMenu) {
-      case "Karyawan":
-        return centerText("Halaman Data Karyawan");
-      case "Produksi":
-        return ProduksiPage();
-      case "Gudang":
-        return centerText("Halaman Gudang");
-      case "Penjualan (POS)":
-        return centerText("Halaman POS / Kasir");
-      default:
-        return dashboard();
-    }
+  void hapusData(int index) {
+    setState(() {
+      dataProduksi.removeAt(index);
+    });
   }
 
-  // DASHBOARD
-  Widget dashboard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Dashboard",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        SizedBox(height: 20),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Data Produksi"),
+        backgroundColor: Colors.blue,
+      ),
 
-        Row(
-          children: [
-            card("Karyawan", "50", Colors.blue),
-            card("Produksi", "20", Colors.orange),
-            card("Gudang", "150", Colors.green),
-            card("Penjualan", "Rp 10jt", Colors.red),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // CARD
-  Widget card(String title, String value, Color color) {
-    return Expanded(
-      child: Container(
-        margin: EdgeInsets.only(right: 10),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          children: [
-            Text(title, style: TextStyle(color: Colors.white)),
-            SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+      body: Column(
+        children: [
+          // 🔍 Search + Tambah
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: "Cari produk...",
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10),
+                ElevatedButton(onPressed: tambahData, child: Text("+ Tambah")),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // 📦 List / Empty
+          Expanded(
+            child: dataProduksi.isEmpty
+                ? Center(
+                    child: Text(
+                      "Belum ada data produksi",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: dataProduksi.length,
+                    itemBuilder: (context, index) {
+                      final item = dataProduksi[index];
+
+                      return Card(
+                        margin: EdgeInsets.all(10),
+                        child: ListTile(
+                          leading: Icon(Icons.factory),
+                          title: Text(item["nama"]!),
+                          subtitle: Text(item["detail"]!),
+
+                          // 🗑️ HAPUS
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              hapusData(index);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+
+      // ➕ FAB
+      floatingActionButton: FloatingActionButton(
+        onPressed: tambahData,
+        child: Icon(Icons.add),
       ),
     );
-  }
-
-  Widget centerText(String text) {
-    return Center(child: Text(text, style: TextStyle(fontSize: 18)));
   }
 }
